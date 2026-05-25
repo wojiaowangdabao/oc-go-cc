@@ -95,6 +95,19 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Handle CORS preflight
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, x-api-key")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Set CORS headers for all responses
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+
 	// Generate or get request ID for correlation
 	requestID := r.Header.Get("X-Request-ID")
 	if requestID == "" {

@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "网页翻译 (oc-go-cc)",
+  "version": "1.0",
+  "description": "通过 oc-go-cc 代理翻译网页内容为中文",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:3456/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
