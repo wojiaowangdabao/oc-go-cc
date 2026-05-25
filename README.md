@@ -88,11 +88,11 @@ oc-go-cc --version          显示版本号
 
 | 文档 | 说明 |
 | -------- | ----------- |
-| [INSTALLATION.md](INSTALLATION.md) | Homebrew、Scoop、源码编译、发布包 |
-| [CONFIGURATION.md](CONFIGURATION.md) | 配置参考、环境变量、模型路由、回退链 |
-| [MODELS.md](MODELS.md) | 模型能力、费用和路由建议 |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 开发环境搭建、架构说明、工作原理 |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 常见问题及调试模式 |
+| [安装.md](安装.md) | Homebrew、Scoop、源码编译、发布包 |
+| [配置.md](配置.md) | 配置参考、环境变量、模型路由、回退链 |
+| [模型.md](模型.md) | 模型能力、费用和路由建议 |
+| [贡献指南.md](贡献指南.md) | 开发环境搭建、架构说明、工作原理 |
+| [故障排除.md](故障排除.md) | 常见问题及调试模式 |
 
 ## 许可证
 
