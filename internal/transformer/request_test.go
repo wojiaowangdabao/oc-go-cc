@@ -377,7 +377,7 @@ func TestTransformRequestPreservesSystemCacheControl(t *testing.T) {
 	if got, want := systemMsg.Role, "system"; got != want {
 		t.Fatalf("Messages[0].Role = %q, want %q", got, want)
 	}
-	if got, want := systemMsg.Content, "You are helpful"; got != want {
+	if got, want := systemMsg.ContentString(), "You are helpful"; got != want {
 		t.Fatalf("Messages[0].Content = %q, want %q", got, want)
 	}
 	if systemMsg.CacheControl == nil {
@@ -462,7 +462,7 @@ func TestTransformRequestPlacesToolResultsBeforeUserText(t *testing.T) {
 	if got, want := openaiReq.Messages[2].Role, "user"; got != want {
 		t.Fatalf("Messages[2].Role = %q, want %q", got, want)
 	}
-	if got, want := openaiReq.Messages[2].Content, "now continue"; got != want {
+	if got, want := openaiReq.Messages[2].ContentString(), "now continue"; got != want {
 		t.Fatalf("Messages[2].Content = %q, want %q", got, want)
 	}
 }
@@ -793,6 +793,153 @@ func TestTransformRequestExtractsThinkingFromToolUseBlock(t *testing.T) {
 	}
 	if got, want := assistantMsg.ToolCalls[0].Function.Name, "search"; got != want {
 		t.Fatalf("ToolCalls[0].Name = %q, want %q", got, want)
+	}
+}
+
+func TestTransformRequestConvertsImageToImageURL(t *testing.T) {
+	transformer := NewRequestTransformer()
+
+	content, _ := json.Marshal([]types.ContentBlock{
+		{Type: "text", Text: "描述这张图片"},
+		{
+			Type: "image",
+			Source: &types.ImageSource{
+				Type:      "base64",
+				MediaType: "image/png",
+				Data:      "iVBORw0KGgo=",
+			},
+		},
+	})
+
+	req := &types.MessageRequest{
+		Model:     "claude-test",
+		MaxTokens: 1024,
+		Messages: []types.Message{
+			{Role: "user", Content: content},
+		},
+	}
+
+	model := config.ModelConfig{
+		Provider: "opencode-go",
+		ModelID:  "kimi-k2.6",
+	}
+
+	openaiReq, err := transformer.TransformRequest(req, model)
+	if err != nil {
+		t.Fatalf("TransformRequest: %v", err)
+	}
+
+	if len(openaiReq.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(openaiReq.Messages))
+	}
+
+	msg := openaiReq.Messages[0]
+	parts, ok := msg.Content.([]types.ContentPart)
+	if !ok {
+		t.Fatalf("Content should be []ContentPart for multimodal, got %T: %v", msg.Content, msg.Content)
+	}
+
+	if len(parts) != 2 {
+		t.Fatalf("expected 2 content parts, got %d", len(parts))
+	}
+
+	if parts[0].Type != "text" || parts[0].Text != "描述这张图片" {
+		t.Fatalf("part[0]: type=%s text=%s, want type=text text=描述这张图片", parts[0].Type, parts[0].Text)
+	}
+
+	if parts[1].Type != "image_url" {
+		t.Fatalf("part[1].Type = %s, want image_url", parts[1].Type)
+	}
+	if parts[1].ImageURL == nil {
+		t.Fatal("part[1].ImageURL is nil")
+	}
+	expected := "data:image/png;base64,iVBORw0KGgo="
+	if parts[1].ImageURL.URL != expected {
+		t.Fatalf("part[1].ImageURL.URL = %s, want %s", parts[1].ImageURL.URL, expected)
+	}
+}
+
+func TestTransformRequestTextOnlyContentIsString(t *testing.T) {
+	transformer := NewRequestTransformer()
+
+	req := &types.MessageRequest{
+		Model:     "claude-test",
+		MaxTokens: 1024,
+		Messages: []types.Message{
+			{Role: "user", Content: json.RawMessage(`"hello"`)},
+		},
+	}
+
+	model := config.ModelConfig{
+		Provider: "opencode-go",
+		ModelID:  "kimi-k2.6",
+	}
+
+	openaiReq, err := transformer.TransformRequest(req, model)
+	if err != nil {
+		t.Fatalf("TransformRequest: %v", err)
+	}
+
+	msg := openaiReq.Messages[0]
+	if msg.ContentString() != "hello" {
+		t.Fatalf("ContentString() = %q, want %q", msg.ContentString(), "hello")
+	}
+
+	if _, ok := msg.Content.(string); !ok {
+		t.Fatalf("Content should be string for text-only messages, got %T", msg.Content)
+	}
+}
+
+func TestTransformRequestImageOnlyNoText(t *testing.T) {
+	transformer := NewRequestTransformer()
+
+	content, _ := json.Marshal([]types.ContentBlock{
+		{
+			Type: "image",
+			Source: &types.ImageSource{
+				Type:      "base64",
+				MediaType: "image/jpeg",
+				Data:      "AAAA",
+			},
+		},
+	})
+
+	req := &types.MessageRequest{
+		Model:     "claude-test",
+		MaxTokens: 1024,
+		Messages: []types.Message{
+			{Role: "user", Content: content},
+		},
+	}
+
+	model := config.ModelConfig{
+		Provider: "opencode-go",
+		ModelID:  "kimi-k2.6",
+	}
+
+	openaiReq, err := transformer.TransformRequest(req, model)
+	if err != nil {
+		t.Fatalf("TransformRequest: %v", err)
+	}
+
+	if len(openaiReq.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(openaiReq.Messages))
+	}
+
+	parts, ok := openaiReq.Messages[0].Content.([]types.ContentPart)
+	if !ok {
+		t.Fatalf("Content should be []ContentPart, got %T", openaiReq.Messages[0].Content)
+	}
+
+	if len(parts) != 1 {
+		t.Fatalf("expected 1 content part, got %d", len(parts))
+	}
+
+	if parts[0].Type != "image_url" {
+		t.Fatalf("part[0].Type = %s, want image_url", parts[0].Type)
+	}
+	if parts[0].ImageURL == nil || parts[0].ImageURL.URL != "data:image/jpeg;base64,AAAA" {
+		t.Fatalf("incorrect image URL: %v", parts[0].ImageURL)
 	}
 }
 

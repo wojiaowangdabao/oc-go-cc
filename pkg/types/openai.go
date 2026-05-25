@@ -30,12 +30,45 @@ type StreamOptions struct {
 // ChatMessage represents a single message in the conversation.
 type ChatMessage struct {
 	Role             string        `json:"role"`
-	Content          string        `json:"content"`
+	Content          interface{}   `json:"content"`
 	ReasoningContent *string       `json:"reasoning_content,omitempty"`
 	ToolCalls        []ToolCall    `json:"tool_calls,omitempty"`
 	Name             string        `json:"name,omitempty"`
 	ToolCallID       string        `json:"tool_call_id,omitempty"`
 	CacheControl     *CacheControl `json:"cache_control,omitempty"`
+}
+
+// ContentString returns the text content of the message.
+// For plain text messages this is the message text; for multimodal messages
+// containing images, this returns only the concatenated text parts.
+func (m ChatMessage) ContentString() string {
+	switch v := m.Content.(type) {
+	case string:
+		return v
+	case []ContentPart:
+		var text string
+		for _, p := range v {
+			if p.Text != "" {
+				text += p.Text
+			}
+		}
+		return text
+	default:
+		return ""
+	}
+}
+
+// ContentPart represents a single part in an array-based content message.
+type ContentPart struct {
+	Type     string         `json:"type"`
+	Text     string         `json:"text,omitempty"`
+	ImageURL *ImageURLPart  `json:"image_url,omitempty"`
+}
+
+// ImageURLPart represents an image URL for vision-capable models.
+type ImageURLPart struct {
+	URL    string `json:"url"`
+	Detail string `json:"detail,omitempty"`
 }
 
 // ToolCall represents a function call made by the model.

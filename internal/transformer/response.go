@@ -104,10 +104,10 @@ func (t *ResponseTransformer) transformContent(msg types.ChatMessage) ([]types.C
 	}
 
 	// Handle text content.
-	if msg.Content != "" {
+	if msg.ContentString() != "" {
 		blocks = append(blocks, types.ContentBlock{
 			Type: "text",
-			Text: msg.Content,
+			Text: msg.ContentString(),
 		})
 	}
 

@@ -19,6 +19,12 @@
       "temperature": 0.7,
       "max_tokens": 4096
     },
+    "multimodal": {
+      "provider": "opencode-go",
+      "model_id": "kimi-k2.6",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
     "long_context": {
       "provider": "opencode-go",
       "model_id": "minimax-m2.5",
@@ -74,6 +80,10 @@
     "default": [
       { "provider": "opencode-go", "model_id": "mimo-v2-pro" },
       { "provider": "opencode-go", "model_id": "qwen3.6-plus" }
+    ],
+    "multimodal": [
+      { "provider": "opencode-go", "model_id": "kimi-k2.6" },
+      { "provider": "opencode-go", "model_id": "mimo-v2-pro" }
     ],
     "long_context": [
       { "provider": "opencode-go", "model_id": "minimax-m2.7" },

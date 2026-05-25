@@ -16,6 +16,7 @@ const (
 	ScenarioThink       Scenario = "think"
 	ScenarioComplex     Scenario = "complex"
 	ScenarioLongContext Scenario = "long_context"
+	ScenarioMultimodal  Scenario = "multimodal"
 	ScenarioFast        Scenario = "fast"
 )
 
@@ -30,6 +31,7 @@ type ScenarioResult struct {
 type MessageContent struct {
 	Role    string
 	Content string
+	HasImage bool
 }
 
 // DetectScenario analyzes a request to determine which model to use.
@@ -42,6 +44,15 @@ type MessageContent struct {
 //
 // For streaming requests, consider using RouteForStreaming() to prefer faster models.
 func DetectScenario(messages []MessageContent, tokenCount int, cfg *config.Config) ScenarioResult {
+	// 0. Check for multimodal content (highest priority - needs vision model)
+	if hasMultimodalContent(messages) {
+		return ScenarioResult{
+			Scenario:   ScenarioMultimodal,
+			TokenCount: tokenCount,
+			Reason:     "multimodal content detected - requires vision-capable model",
+		}
+	}
+
 	// 1. Check for long context first (most important)
 	threshold := getLongContextThreshold(cfg)
 	if tokenCount > threshold {
@@ -85,6 +96,16 @@ func DetectScenario(messages []MessageContent, tokenCount int, cfg *config.Confi
 		TokenCount: tokenCount,
 		Reason:     "default scenario (use Kimi K2.6)",
 	}
+}
+
+// hasMultimodalContent checks if any message contains image content blocks.
+func hasMultimodalContent(messages []MessageContent) bool {
+	for _, msg := range messages {
+		if msg.HasImage {
+			return true
+		}
+	}
+	return false
 }
 
 // hasComplexPattern looks for complex operations that need more capable models.
@@ -195,6 +216,15 @@ func getLongContextThreshold(cfg *config.Config) int {
 // For streaming, we prioritize fast TTFT (time-to-first-token) over capability.
 // This may return a less capable model but one that streams faster.
 func RouteForStreaming(messages []MessageContent, tokenCount int, cfg *config.Config) ScenarioResult {
+	// Multimodal streaming still needs a vision-capable model
+	if hasMultimodalContent(messages) {
+		return ScenarioResult{
+			Scenario:   ScenarioMultimodal,
+			TokenCount: tokenCount,
+			Reason:     "multimodal content detected - requires vision-capable model (even for streaming)",
+		}
+	}
+
 	// For streaming, use simpler models that have better TTFT
 	// Complex models (GLM, Kimi) are too slow for streaming with many tools
 

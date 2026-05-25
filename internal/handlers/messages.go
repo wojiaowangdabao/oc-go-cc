@@ -158,9 +158,11 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 	for _, msg := range anthropicReq.Messages {
 		blocks := msg.ContentBlocks()
 		content := extractTextFromBlocks(blocks)
+		hasImage := hasImageBlock(blocks)
 		mc := router.MessageContent{
-			Role:    msg.Role,
-			Content: content,
+			Role:     msg.Role,
+			Content:  content,
+			HasImage: hasImage,
 		}
 		routerMessages = append(routerMessages, mc)
 		tokenMessages = append(tokenMessages, token.MessageContent{
@@ -556,6 +558,16 @@ func extractTextFromBlocks(blocks []types.ContentBlock) string {
 		}
 	}
 	return content
+}
+
+// hasImageBlock checks if any content block contains an image.
+func hasImageBlock(blocks []types.ContentBlock) bool {
+	for _, block := range blocks {
+		if block.Type == "image" {
+			return true
+		}
+	}
+	return false
 }
 
 // sendError sends an error response in Anthropic format.
