@@ -172,6 +172,13 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 		blocks := msg.ContentBlocks()
 		content := extractTextFromBlocks(blocks)
 		hasImage := hasImageBlock(blocks)
+		if hasImage {
+			h.logger.Info("image content detected in message",
+				"role", msg.Role,
+				"blocks", len(blocks),
+				"request_id", requestID,
+			)
+		}
 		mc := router.MessageContent{
 			Role:     msg.Role,
 			Content:  content,
@@ -213,6 +220,7 @@ func (h *MessagesHandler) HandleMessages(w http.ResponseWriter, r *http.Request)
 		"scenario", routeResult.Scenario,
 		"model", routeResult.Primary.ModelID,
 		"tokens", tokenCount,
+		"has_image", hasImageInMessages(routerMessages),
 	)
 
 	// Build fallback chain.
@@ -554,6 +562,15 @@ func (h *MessagesHandler) executeOpenAIRequest(
 }
 
 // extractTextFromBlocks extracts plain text from Anthropic content blocks.
+func hasImageInMessages(messages []router.MessageContent) bool {
+	for _, msg := range messages {
+		if msg.HasImage {
+			return true
+		}
+	}
+	return false
+}
+
 func extractTextFromBlocks(blocks []types.ContentBlock) string {
 	var content string
 	for _, block := range blocks {
